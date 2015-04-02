@@ -3,13 +3,27 @@ project(karpal_moveit)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  moveit_core
+  rospy
+  std_msgs
+  eigen_conversions
   moveit_ros_planning
   moveit_ros_planning_interface
-  interactive_markers
+  moveit_core
+  moveit_visual_tools
+  moveit_simple_grasps
+  tf
+  tf_conversions
+  trajectory_msgs
+  message_generation
+  geometry_msgs
+  actionlib
+  actionlib_msgs
+  moveit_msgs
+  cmake_modules
 )
 
 find_package(cmake_modules REQUIRED)
+find_package(Boost REQUIRED thread system)
 
 
 ################################################
@@ -73,11 +87,15 @@ find_package(cmake_modules REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES karpal_moveit
-#  CATKIN_DEPENDS roscpp std_msgs
-#  DEPENDS system_lib
-)
+  CATKIN_DEPENDS
+    actionlib_msgs
+    geometry_msgs
+    moveit_msgs
+    trajectory_msgs
+    std_msgs
+    moveit_visual_tools
+    moveit_simple_grasps
+  )
 
 ###########
 ## Build ##

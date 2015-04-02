@@ -5,7 +5,8 @@
 
 void pick(moveit::planning_interface::MoveGroup &group)
 {
-  std::vector<moveit_msgs::Grasp> grasps;
+  std::vector<moveit_msgs::Grasp> possible_grasps;
+
   for (std::size_t i = 0 ; i < 10 ; ++i)
   {
 
@@ -26,19 +27,22 @@ void pick(moveit::planning_interface::MoveGroup &group)
     g.post_grasp_retreat.min_distance = 0.1;
     g.post_grasp_retreat.desired_distance = 0.27;
 
-    g.pre_grasp_posture.joint_names.resize(1, "right_gripper_base");
+    std::vector<std::string> joint_names;
+    joint_names.push_back("right_gripper_base");
+
+    g.pre_grasp_posture.joint_names = joint_names;
     g.pre_grasp_posture.points.resize(1);
     g.pre_grasp_posture.points[0].positions.resize(1);
     g.pre_grasp_posture.points[0].positions[0] = 1;
 
-    g.grasp_posture.joint_names.resize(1, "right_gripper_base");
+    g.grasp_posture.joint_names = joint_names;
     g.grasp_posture.points.resize(1);
     g.grasp_posture.points[0].positions.resize(1);
     g.grasp_posture.points[0].positions[0] = 0;
 
-    grasps.push_back(g);
+    possible_grasps.push_back(g);
   }
-  group.pick("block", grasps);
+  group.pick("block", possible_grasps);
 }
 
 void place(moveit::planning_interface::MoveGroup &group)
