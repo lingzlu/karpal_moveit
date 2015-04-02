@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning_interface
   moveit_core
   moveit_visual_tools
-  moveit_simple_grasps
   tf
   tf_conversions
   trajectory_msgs
@@ -94,7 +93,6 @@ catkin_package(
     trajectory_msgs
     std_msgs
     moveit_visual_tools
-    moveit_simple_grasps
   )
 
 ###########
@@ -114,13 +112,14 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-add_executable(karpal_moveit_node src/pick_place.cpp)
+add_executable(pick_place src/pick_place.cpp)
+#add_executable(cartesian_path src/path_planning.py)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(karpal_moveit_node karpal_moveit_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(karpal_moveit_node
+target_link_libraries(pick_place
   ${catkin_LIBRARIES}
 )

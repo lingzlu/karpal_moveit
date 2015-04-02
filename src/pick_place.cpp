@@ -6,6 +6,9 @@
 void pick(moveit::planning_interface::MoveGroup &group)
 {
   std::vector<moveit_msgs::Grasp> possible_grasps;
+	geometry_msgs::Pose object_pose;
+  // Target Pose
+
 
     moveit_msgs::Grasp grasp;
     grasp.id = "Test Grasp";
@@ -57,27 +60,25 @@ void pick(moveit::planning_interface::MoveGroup &group)
     grasp_pose_msg.header.frame_id = "/root";
     grasp_pose_msg.pose = object_pose;
 
-    grasp_pose_msg.pose.position.y -= 0.1525;
-
-    Eigen::AngleAxisd rollAngle(0, Eigen::Vector3d::UnitZ());
-    Eigen::AngleAxisd yawAngle(0, Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd pitchAngle(M_PI/2, Eigen::Vector3d::UnitX());
-    Eigen::Quaternion<double> quat = rollAngle * yawAngle * pitchAngle;
-    grasp_pose_msg.pose.orientation.x = quat.x();
-    grasp_pose_msg.pose.orientation.y = quat.y();
-    grasp_pose_msg.pose.orientation.z = quat.z();
-    grasp_pose_msg.pose.orientation.w = quat.w();
-    grasp.grasp_pose = grasp_pose_msg;
-
     // grasp.grasp_pose = p;
     grasp.pre_grasp_approach.direction.vector.x = 1.0;
     grasp.pre_grasp_approach.min_distance = 0.2;
     grasp.pre_grasp_approach.desired_distance = 0.4;
 
-    grasp.post_grasp_retreat.direction.vector.z = 1.0;
-    grasp.post_grasp_retreat.direction.header = p.header;
-    grasp.post_grasp_retreat.min_distance = 0.1;
-    grasp.post_grasp_retreat.desired_distance = 0.27;
+    //grasp.post_grasp_retreat.direction.vector.z = 1.0;
+    //grasp.post_grasp_retreat.direction.header = p.header;
+    //grasp.post_grasp_retreat.min_distance = 0.1;
+    //grasp.post_grasp_retreat.desired_distance = 0.27;
+
+    //moveit_msgs::GripperTranslation post_grasp_retreat;
+   // post_grasp_retreat.direction.header.frame_id = "/root";
+    //post_grasp_retreat.direction.header.stamp = ros::Time::now();
+    //post_grasp_retreat.desired_distance = 0.6;
+    //post_grasp_retreat.min_distance = 0.05;
+   // post_grasp_retreat.direction.vector.x = 0;
+    //post_grasp_retreat.direction.vector.y = 0;
+   // post_grasp_retreat.direction.vector.z = 1; // Retreat direction (pos z axis)
+    //graps.post_grasp_retreat = post_grasp_retreat;
 
     // grasp.grasp_posture.joint_names = joint_names;
     // grasp.grasp_posture.points.resize(1);
