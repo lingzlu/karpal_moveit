@@ -7,9 +7,6 @@ void pick(moveit::planning_interface::MoveGroup &group)
 {
   std::vector<moveit_msgs::Grasp> possible_grasps;
 
-  for (std::size_t i = 0 ; i < 10 ; ++i)
-  {
-
     geometry_msgs::PoseStamped p = group.getRandomPose();
     p.pose.orientation.x = 0;
     p.pose.orientation.y = 0;
@@ -28,7 +25,7 @@ void pick(moveit::planning_interface::MoveGroup &group)
     g.post_grasp_retreat.desired_distance = 0.27;
 
     std::vector<std::string> joint_names;
-    joint_names.push_back("right_gripper_base");
+    joint_names.push_back("right_gripper");
 
     g.pre_grasp_posture.joint_names = joint_names;
     g.pre_grasp_posture.points.resize(1);
@@ -41,8 +38,7 @@ void pick(moveit::planning_interface::MoveGroup &group)
     g.grasp_posture.points[0].positions[0] = 0;
 
     possible_grasps.push_back(g);
-  }
-  group.pick("block", possible_grasps);
+    group.pick("block", possible_grasps);
 }
 
 void place(moveit::planning_interface::MoveGroup &group)
@@ -65,7 +61,7 @@ void place(moveit::planning_interface::MoveGroup &group)
     g.post_place_retreat.min_distance = 0.1;
     g.post_place_retreat.desired_distance = 0.27;
 
-    g.post_place_posture.joint_names.resize(1, "right_gripper_base");
+    g.post_place_posture.joint_names.resize(1, "right_gripper");
     g.post_place_posture.points.resize(1);
     g.post_place_posture.points[0].positions.resize(1);
     g.post_place_posture.points[0].positions[0] = 0;
@@ -91,9 +87,9 @@ void attachObject(void)
   msg.primitives[0].dimensions.push_back(0.1);//height
   msg.primitives[0].dimensions.push_back(0.05);//radius
   msg.primitive_poses.resize(1);
-  msg.primitive_poses[0].position.x = 0.5;
+  msg.primitive_poses[0].position.x = 0.8;
   msg.primitive_poses[0].position.y = 0.2;
-  msg.primitive_poses[0].position.z = 0;
+  msg.primitive_poses[0].position.z = 0.3;
   msg.primitive_poses[0].orientation.x = 0.0;
   msg.primitive_poses[0].orientation.y = 0.0;
   msg.primitive_poses[0].orientation.z = 0.0;
@@ -121,7 +117,7 @@ int main(int argc, char **argv)
   // this connects to a running instance of the move_group node
   moveit::planning_interface::MoveGroup group(argc > 1 ? argv[1] : "right_arm");
   group.setPlanningTime(45.0);
- 
+
  // (Optional) Create a publisher for visualizing plans in Rviz.
   //ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
   //moveit_msgs::DisplayTrajectory display_trajectory;
