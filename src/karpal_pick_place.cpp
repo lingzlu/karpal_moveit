@@ -23,8 +23,8 @@ private:
   moveit_visual_tools::MoveItVisualToolsPtr visual_tools_;
 
   // our interface with MoveIt
-  boost::scoped_ptr<move_group_interface::MoveGroup> arm_;
-  boost::scoped_ptr<move_group_interface::MoveGroup> gripper_;
+  boost::scoped_ptr<move_group_interface::MoveGroup> arm;
+  boost::scoped_ptr<move_group_interface::MoveGroup> gripper;
 
   // which baxter arm are we using
   std::string ee_group_name_;
@@ -39,18 +39,18 @@ public:
     nh_.param("ee_group_name", ee_group_name_, std::string("gripper"));
     planning_group_name_ = "arm";
     gripper_group_name_ = "gripper";
-    
-    // Create MoveGroup for one of the planning groups
-    arm_.reset(new move_group_interface::MoveGroup(planning_group_name_));
-    // arm_->setPlanningTime(30.0);
-    arm_->setPlannerId("RRTstarkConfigDefault");
-    arm_->setNumPlanningAttempts(3);
-    arm_->setPlanningTime(60.0);
 
-    gripper_.reset(new move_group_interface::MoveGroup(gripper_group_name_));
-    gripper_->setPlannerId("RRTstarkConfigDefault");
-    gripper_->setNumPlanningAttempts(3);
-    gripper_->setPlanningTime(20.0);
+    // Create MoveGroup for one of the planning groups
+    arm.reset(new move_group_interface::MoveGroup(planning_group_name_));
+    // arm->setPlanningTime(30.0);
+    arm->setPlannerId("RRTstarkConfigDefault");
+    arm->setNumPlanningAttempts(3);
+    arm->setPlanningTime(60.0);
+
+    gripper.reset(new move_group_interface::MoveGroup(gripper_group_name_));
+    gripper->setPlannerId("RRTstarkConfigDefault");
+    gripper->setNumPlanningAttempts(3);
+    gripper->setPlanningTime(20.0);
 
     ROS_INFO_STREAM_NAMED("test","End Effector: " << ee_group_name_);
     ROS_INFO_STREAM_NAMED("test","Planning Group: " << planning_group_name_);
@@ -77,7 +77,7 @@ public:
 
       // Remove randomness when we are only running one test
       generateTestObject(i, object_pose);
-      
+
       // Show the block
       visual_tools_->cleanupACO("Cylinder 0");
       visual_tools_->publishCollisionFloor(0.0, "Floor", rviz_visual_tools::BLUE);
@@ -87,7 +87,7 @@ public:
       stringStream << "Cylinder " << i ;
       std::string object_name = stringStream.str();
       visual_tools_->publishCollisionCylinder(object_pose, object_name, 0.035, 0.25);
-      ros::Duration(0.5).sleep(); 
+      ros::Duration(0.5).sleep();
 
       // Generate a Grasp
       moveit_msgs::Grasp possible_grasps;
@@ -174,11 +174,11 @@ public:
       possible_possible_grasps.push_back(possible_grasps);
 
       // Execute Pick
-      arm_->setSupportSurfaceName("Table");
+      arm->setSupportSurfaceName("Table");
       std::cout << "Ready to pick: " << object_name << std::endl;
-      ros::Duration(0.5).sleep(); 
+      ros::Duration(0.5).sleep();
       std::cout << "Picking: " << object_name << std::endl;
-      MoveItErrorCode err = arm_->pick(object_name, possible_grasps);
+      MoveItErrorCode err = arm->pick(object_name, possible_grasps);
       std::cout << "Picking: " << err << std::endl;
 
       std::cout << "Placing: " << object_name << std::endl;
@@ -196,19 +196,19 @@ public:
       object_pose.orientation.w = quat.w();
 
       // Move Arm
-      arm_->setStartState(*arm_->getCurrentState());
-      arm_->setPoseTarget(object_pose);
-      err = arm_->move();
+      arm->setStartState(*arm->getCurrentState());
+      arm->setPoseTarget(object_pose);
+      err = arm->move();
       std::cout << "Moving arm: " << err << std::endl;
 
       // Open Gripper
-      gripper_->setStartState(*gripper_->getCurrentState());
-      gripper_->setNamedTarget("open");
-      err = gripper_->move();
+      gripper->setStartState(*gripper->getCurrentState());
+      gripper->setNamedTarget("open");
+      err = gripper->move();
       std::cout << "Opening gripper: " << err << std::endl;
-      
-      arm_->detachObject(object_name);
-      
+
+      arm->detachObject(object_name);
+
       // Test if done
       ++i;
       if( i >= num_tests )

@@ -3,9 +3,9 @@
 #include <moveit/move_group_interface/move_group.h>
 #include <shape_tools/solid_primitive_dims.h>
 
-void pick(moveit::planning_interface::MoveGroup &group)
+void pick(moveit::planning_interface::MoveGroup &group, geometry_msgs::Pose& object_pose)
 {
-  std::vector<moveit_msgs::Grasp> possible_grasps;
+    std::vector<moveit_msgs::Grasp> possible_grasps;
 
     moveit_msgs::Grasp grasp;
     grasp.id = "Test Grasp";
@@ -28,11 +28,6 @@ void pick(moveit::planning_interface::MoveGroup &group)
     pre_grasp_posture.points[0].time_from_start = ros::Duration(4.0);
     grasp.pre_grasp_posture = pre_grasp_posture;
 
-    // grasp.pre_grasp_posture.joint_names = joint_names;
-    // grasp.pre_grasp_posture.points.resize(1);
-    // grasp.pre_grasp_posture.points[0].positions.resize(1);
-    // grasp.pre_grasp_posture.points[0].positions[0] = 1;
-
     trajectory_msgs::JointTrajectory grasp_posture;
     grasp_posture.header.frame_id = "root";
     grasp_posture.header.stamp = ros::Time::now();
@@ -47,16 +42,10 @@ void pick(moveit::planning_interface::MoveGroup &group)
     grasp_posture.points[0].time_from_start = ros::Duration(4.0);
     grasp.grasp_posture = grasp_posture;
 
-    // geometry_msgs::PoseStamped p = group.getRandomPose();
-    // p.pose.orientation.x = 0;
-    // p.pose.orientation.y = 0;
-    // p.pose.orientation.z = 0;
-    // p.pose.orientation.w = 1;
     geometry_msgs::PoseStamped grasp_pose_msg;
     grasp_pose_msg.header.stamp = ros::Time::now();
     grasp_pose_msg.header.frame_id = "/root";
     grasp_pose_msg.pose = object_pose;
-
     grasp_pose_msg.pose.position.y -= 0.1525;
 
     Eigen::AngleAxisd rollAngle(0, Eigen::Vector3d::UnitZ());
@@ -69,7 +58,7 @@ void pick(moveit::planning_interface::MoveGroup &group)
     grasp_pose_msg.pose.orientation.w = quat.w();
     grasp.grasp_pose = grasp_pose_msg;
 
-    grasp.grasp_pose = p;
+    // grasp.grasp_pose = p;
     grasp.pre_grasp_approach.direction.vector.x = 1.0;
     grasp.pre_grasp_approach.min_distance = 0.2;
     grasp.pre_grasp_approach.desired_distance = 0.4;
@@ -118,34 +107,37 @@ void place(moveit::planning_interface::MoveGroup &group)
   group.place("block", loc);
 }
 
-void attachObject(void)
+void generateTestObject(geometry_msgs::Pose& object_pose)
 {
-  ros::NodeHandle nh;
+  // Position
+  geometry_msgs::Pose start_object_pose;
+  start_object_pose.position.x = 0.3;
+  start_object_pose.position.y = 0.5;
+  start_object_pose.position.z =  0.25;
 
-  ros::Publisher pub = nh.advertise<moveit_msgs::CollisionObject>("/collision_object", 1000);
-  sleep(1);
+  // Orientation
+  double angle = 0; // M_PI / 1.5;
+  Eigen::Quaterniond quat(Eigen::AngleAxis<double>(double(angle), Eigen::Vector3d::UnitZ()));
+  start_object_pose.orientation.x = quat.x();
+  start_object_pose.orientation.y = quat.y();
+  start_object_pose.orientation.z = quat.z();
+  start_object_pose.orientation.w = quat.w();
 
-  ros::Rate rate(10);
-  moveit_msgs::CollisionObject msg;
-  msg.header.frame_id = "/base_link";
-  msg.id = "block";
-  msg.primitives.resize(1);
-  msg.primitives[0].type = msg.primitives[0].CYLINDER;
-  msg.primitives[0].dimensions.push_back(0.1);//height
-  msg.primitives[0].dimensions.push_back(0.05);//radius
-  msg.primitive_poses.resize(1);
-  msg.primitive_poses[0].position.x = 0.8;
-  msg.primitive_poses[0].position.y = 0.2;
-  msg.primitive_poses[0].position.z = 0.3;
-  msg.primitive_poses[0].orientation.x = 0.0;
-  msg.primitive_poses[0].orientation.y = 0.0;
-  msg.primitive_poses[0].orientation.z = 0.0;
-  msg.primitive_poses[0].orientation.w = 1.0;
-  msg.operation = msg.ADD;
+  // Choose which object to test
+  object_pose = start_object_pose;
 
-  pub.publish(msg);
-
+  // Show the block
+  moveit_visual_tools::MoveItVisualToolsPtr visual_tools;
+  visual_tools->cleanupACO("Cylinder");
+  visual_tools->publishCollisionFloor(0.0, "Floor", rviz_visual_tools::BLUE);
+  visual_tools->publishCollisionTable(0.0, 0.75, 0.0, 0.8, 0.18, 1.5, "Table", rviz_visual_tools::BLUE);
+  std::ostringstream stringStream;
+  stringStream << "Cylinder " ;
+  std::string object_name = stringStream.str();
+  visual_tools->publishCollisionCylinder(object_pose, object_name, 0.035, 0.25);
+  ros::Duration(0.5).sleep();
 }
+
 int main(int argc, char **argv)
 {
 
@@ -154,80 +146,14 @@ int main(int argc, char **argv)
   // start a ROS spinning thread
   ros::AsyncSpinner spinner(1);
   spinner.start();
-  attachObject();
-  // ros::NodeHandle nh;
-  // ros::Publisher pub_co = nh.advertise<moveit_msgs::CollisionObject>("collision_object", 10);
-  // ros::Publisher pub_aco = nh.advertise<moveit_msgs::AttachedCollisionObject>("attached_collision_object", 10);
 
-  // ros::WallDuration(1.0).sleep();
-
-  // this connects to a running instance of the move_group node
   moveit::planning_interface::MoveGroup group(argc > 1 ? argv[1] : "right_arm");
-  group.setPlanningTime(45.0);
 
- // (Optional) Create a publisher for visualizing plans in Rviz.
-  //ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
-  //moveit_msgs::DisplayTrajectory display_trajectory;
-
-  // moveit_msgs::CollisionObject co;
-  // co.header.stamp = ros::Time::now();
-  // co.header.frame_id = "base_footprint";
-
-  //  // remove pole
-  // co.id = "pole";
-  // co.operation = moveit_msgs::CollisionObject::REMOVE;
-  // pub_co.publish(co);
-  // // add pole
-  // co.operation = moveit_msgs::CollisionObject::ADD;
-  // co.primitives.resize(1);
-  // co.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
-  // co.primitives[0].dimensions.resize(shape_tools::SolidPrimitiveDimCount<shape_msgs::SolidPrimitive::BOX>::value);
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_X] = 0.5;
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Y] = 0.1;
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Z] = 1.0;
-  // co.primitive_poses.resize(1);
-  // co.primitive_poses[0].position.x = 0.7;
-  // co.primitive_poses[0].position.y = -0.4;
-  // co.primitive_poses[0].position.z = 0.85;
-  // co.primitive_poses[0].orientation.w = 1.0;
-  // pub_co.publish(co);
-
-  // remove table
-  // co.id = "table";
-  // co.operation = moveit_msgs::CollisionObject::REMOVE;
-  // pub_co.publish(co);
-  // // add table
-  // co.operation = moveit_msgs::CollisionObject::ADD;
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_X] = 0.5;
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Y] = 1.5;
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Z] = 0.35;
-  // co.primitive_poses[0].position.x = 0.7;
-  // co.primitive_poses[0].position.y = -0.2;
-  // co.primitive_poses[0].position.z = 0.175;
-  // pub_co.publish(co);
-
-  // co.id = "block";
-  // co.operation = moveit_msgs::CollisionObject::REMOVE;
-  // pub_co.publish(co);
-
-  // moveit_msgs::AttachedCollisionObject aco;
-  // aco.object = co;
-  // pub_aco.publish(aco);
-
-  // co.operation = moveit_msgs::CollisionObject::ADD;
-  // // co.primitives.resize(1);
-  // // co.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
-  // co.primitives[0].dimensions.resize(shape_tools::SolidPrimitiveDimCount<shape_msgs::SolidPrimitive::BOX>::value);
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_X] = 0.64;
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Y] = 0.4;
-  // co.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Z] = 0.35;
-  // co.primitive_poses[0].position.x = 0.6;
-  // co.primitive_poses[0].position.y = -0.7;
-  // co.primitive_poses[0].position.z = 0.5;
-  // pub_co.publish(co);
+  geometry_msgs::Pose object_pose;
+  generateTestObject(object_pose);
 
   ros::WallDuration(1.0).sleep();
-  pick(group);
+  pick(group, object_pose);
 
   ros::WallDuration(1.0).sleep();
 
