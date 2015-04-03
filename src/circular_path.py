@@ -2,6 +2,7 @@
 
 import rospy, sys
 import moveit_commander
+import math
 from moveit_commander import MoveGroupCommander
 from geometry_msgs.msg import Pose
 from copy import deepcopy
@@ -24,47 +25,23 @@ class Path_Planning:
         #right_arm.set_pose_reference_frame('base_footprint')
 
         # Allow some leeway in position(meters) and orientation (radians)
-        right_arm.set_goal_position_tolerance(0.01)
-        right_arm.set_goal_orientation_tolerance(0.1)
+        right_arm.set_goal_position_tolerance(0.001)
+        right_arm.set_goal_orientation_tolerance(0.01)
 
         # Get the name of the end-effector link
         end_effector_link = right_arm.get_end_effector_link()
 
          # Start in the "straight_forward" configuration stored in the SRDF file
-        #right_arm.set_named_target('right_ready')
+        right_arm.set_named_target('right_neutral')
 
         # Plan and execute a trajectory to the goal configuration
         right_arm.go()
-
+        rospy.sleep(1)
         # Get the current pose so we can add it as a waypoint
         start_pose = right_arm.get_current_pose(end_effector_link).pose
 
-        # Initialize the waypoints list
-        waypoints = []
-
-        # Append the pose to the waypoints list
-        waypoints.append(start_pose)
-
-        wpose = deepcopy(start_pose)
-
-        # Set the next waypoint back 0.2 meters and right 0.2 meters
-        wpose.position.x -= 0.2
-        wpose.position.y += 0.2
-
-        # Append the pose to the waypoints list
-        waypoints.append(deepcopy(wpose))
-
-        # Set the next waypoint to the right 0.15 meters
-        wpose.position.x += 0.15
-        wpose.position.y += 0.15
-        wpose.position.z -= 0.15
-
-        # Append the pose to the waypoints list
-        waypoints.append(deepcopy(wpose))
-
-        # Append the start pose to the waypoints list
-        waypoints.append(deepcopy(start_pose))
-
+        waypoints = self.circular_path(start_pose)
+        print waypoints
         fraction = 0.0
         maxtries = 100
         attempts = 0
@@ -78,7 +55,7 @@ class Path_Planning:
                                      waypoints,   # waypoint poses
                                      0.01,        # eef_step
                                      0.0,         # jump_threshold
-                                     True)        # avoid_collisions
+                                     False)        # avoid_collisions
 
             # Increment the number of attempts
             attempts += 1
@@ -107,6 +84,26 @@ class Path_Planning:
 
             # Exit MoveIt
             moveit_commander.os._exit(0)
+
+    def circular_path(self, current_pose):
+
+        waypoints = []
+
+        # Append the pose to the waypoints list
+        wpose = deepcopy(current_pose)
+        waypoints.append(wpose)
+        radius = 0.05
+        for a in range(0, 10, 1):
+            tempX = radius*math.cos(a*math.pi/4)
+            tempY = radius*math.sin(a*math.pi/4)
+            wpose.position.x += tempX
+            wpose.position.y += tempY
+            waypoints.append(deepcopy(wpose))
+
+        # Append the start pose to the waypoints list
+        waypoints.append(current_pose)
+        return waypoints
+
 
 if __name__ == "__main__":
      try:
