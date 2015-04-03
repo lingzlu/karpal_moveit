@@ -19,7 +19,7 @@ class Path_Planning:
 		# Connect to the arm move group
 		if self.arm == "right_arm":
 			self.arm = MoveGroupCommander('right_arm')
-		else
+		else:
 			self.arm = MoveGroupCommander('left_arm')
 
 		# Allow replanning to increase the odds of a solution
@@ -109,4 +109,3 @@ if __name__ == "__main__":
 
 	# Exit MoveIt
 	moveit_commander.os._exit(0)
-

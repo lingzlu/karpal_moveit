@@ -7,7 +7,7 @@
   <maintainer email="lingzhoulu@gmail.com">Lingzhou Lu</maintainer>
 
   <license>BSD</license>
-  <author email="lingzhoulu@gmail.com">Lingzhou Lu</author> 
+  <author email="lingzhoulu@gmail.com">Lingzhou Lu</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -19,7 +19,6 @@
   <build_depend>moveit_ros_planning</build_depend>
   <build_depend>moveit_ros_planning_interface</build_depend>
   <build_depend>moveit_core</build_depend>
-  <build_depend>moveit_visual_tools</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>tf_conversions</build_depend>
   <build_depend>trajectory_msgs</build_depend>
@@ -29,7 +28,7 @@
   <build_depend>actionlib_msgs</build_depend>
   <build_depend>moveit_msgs</build_depend>
   <build_depend>cmake_modules</build_depend>
-  
+
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
