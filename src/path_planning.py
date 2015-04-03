@@ -11,10 +11,10 @@ class Path_Planning:
         # Initialize the move_group API
         moveit_commander.roscpp_initialize(sys.argv)
 
-         # Initialize the ROS node
+        # Initialize the ROS node
         rospy.init_node('moveit_demo', anonymous=True)
 
-         # Connect to the right_arm move group
+        # Connect to the right_arm move group
         right_arm = MoveGroupCommander('right_arm')
 
         # Allow replanning to increase the odds of a solution
@@ -36,14 +36,14 @@ class Path_Planning:
         # Plan and execute a trajectory to the goal configuration
         right_arm.go()
 
-         # Get the current pose so we can add it as a waypoint
+        # Get the current pose so we can add it as a waypoint
         start_pose = right_arm.get_current_pose(end_effector_link).pose
 
-         # Initialize the waypoints list
+        # Initialize the waypoints list
         waypoints = []
 
-	 # Append the pose to the waypoints list
-	waypoints.append(start_pose)
+        # Append the pose to the waypoints list
+        waypoints.append(start_pose)
 
         wpose = deepcopy(start_pose)
 
@@ -51,62 +51,62 @@ class Path_Planning:
         wpose.position.x -= 0.2
         wpose.position.y += 0.2
 
-	# Append the pose to the waypoints list
-	waypoints.append(deepcopy(wpose))
+        # Append the pose to the waypoints list
+        waypoints.append(deepcopy(wpose))
 
-         # Set the next waypoint to the right 0.15 meters
+        # Set the next waypoint to the right 0.15 meters
         wpose.position.x += 0.15
         wpose.position.y += 0.15
         wpose.position.z += 0.15
 
-	# Append the pose to the waypoints list
-	waypoints.append(deepcopy(wpose))
+        # Append the pose to the waypoints list
+        waypoints.append(deepcopy(wpose))
 
-	# Append the start pose to the waypoints list
-	waypoints.append(deepcopy(start_pose))
+        # Append the start pose to the waypoints list
+        waypoints.append(deepcopy(start_pose))
 
-	fraction = 0.0
-	maxtries = 100
-	attempts = 0
+        fraction = 0.0
+        maxtries = 100
+        attempts = 0
 
-	# Set the internal state to the current state
-	right_arm.set_start_state_to_current_state()
+        # Set the internal state to the current state
+        right_arm.set_start_state_to_current_state()
 
-	# Plan the Cartesian path connecting the waypoints
-	while fraction < 1.0 and attempts < maxtries:
-		(plan, fraction) = right_arm.compute_cartesian_path (
-			                     waypoints,   # waypoint poses
-			                     0.01,        # eef_step
-			                     0.0,         # jump_threshold
-			                     True)        # avoid_collisions
+        # Plan the Cartesian path connecting the waypoints
+        while fraction < 1.0 and attempts < maxtries:
+            (plan, fraction) = right_arm.compute_cartesian_path (
+                                     waypoints,   # waypoint poses
+                                     0.01,        # eef_step
+                                     0.0,         # jump_threshold
+                                     True)        # avoid_collisions
 
-		# Increment the number of attempts
-		attempts += 1
+            # Increment the number of attempts
+            attempts += 1
 
-		# Print out a progress message
-		if attempts % 10 == 0:
-			rospy.loginfo("Still trying after " + str(attempts) + " attempts...")
+            # Print out a progress message
+            if attempts % 10 == 0:
+                rospy.loginfo("Still trying after " + str(attempts) + " attempts...")
 
-	 # If we have a complete plan, execute the trajectory
-	if fraction == 1.0:
-		 rospy.loginfo("Path computed successfully. Moving the arm.")
+         # If we have a complete plan, execute the trajectory
+        if fraction == 1.0:
+             rospy.loginfo("Path computed successfully. Moving the arm.")
 
-		 right_arm.execute(plan)
+             right_arm.execute(plan)
 
-		 rospy.loginfo("Path execution complete.")
-	else:
-		 rospy.loginfo("Path planning failed with only " + str(fraction) + " success after " + str(maxtries) + " attempts.")
+             rospy.loginfo("Path execution complete.")
+        else:
+             rospy.loginfo("Path planning failed with only " + str(fraction) + " success after " + str(maxtries) + " attempts.")
 
-        # Move normally back to the 'resting' position
-        right_arm.set_named_target('right_neutral')
-        right_arm.go()
-        rospy.sleep(1)
+            # Move normally back to the 'resting' position
+            right_arm.set_named_target('right_neutral')
+            right_arm.go()
+            rospy.sleep(1)
 
-        # Shut down MoveIt cleanly
-        moveit_commander.roscpp_shutdown()
+            # Shut down MoveIt cleanly
+            moveit_commander.roscpp_shutdown()
 
-        # Exit MoveIt
-        moveit_commander.os._exit(0)
+            # Exit MoveIt
+            moveit_commander.os._exit(0)
 
 if __name__ == "__main__":
      try:
