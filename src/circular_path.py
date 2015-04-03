@@ -5,6 +5,7 @@ import moveit_commander
 import math
 from moveit_commander import MoveGroupCommander
 from geometry_msgs.msg import Pose
+import moveit_msgs.msg
 from copy import deepcopy
 
 class Path_Planning:
@@ -13,16 +14,13 @@ class Path_Planning:
         moveit_commander.roscpp_initialize(sys.argv)
 
         # Initialize the ROS node
-        rospy.init_node('moveit_demo', anonymous=True)
+        rospy.init_node('moveit_circular_motion', anonymous=True)
 
         # Connect to the right_arm move group
-        right_arm = MoveGroupCommander('right_arm')
+        right_arm = MoveGroupCommander('left_arm')
 
         # Allow replanning to increase the odds of a solution
         right_arm.allow_replanning(True)
-
-        # Set the right arm reference frame
-        #right_arm.set_pose_reference_frame('base_footprint')
 
         # Allow some leeway in position(meters) and orientation (radians)
         right_arm.set_goal_position_tolerance(0.001)
@@ -32,7 +30,7 @@ class Path_Planning:
         end_effector_link = right_arm.get_end_effector_link()
 
          # Start in the "straight_forward" configuration stored in the SRDF file
-        right_arm.set_named_target('right_neutral')
+        #right_arm.set_named_target('left_neutral')
 
         # Plan and execute a trajectory to the goal configuration
         right_arm.go()
@@ -40,8 +38,8 @@ class Path_Planning:
         # Get the current pose so we can add it as a waypoint
         start_pose = right_arm.get_current_pose(end_effector_link).pose
 
-        waypoints = self.circular_path(start_pose)
-        print waypoints
+        waypoints = self.circular_path()
+
         fraction = 0.0
         maxtries = 100
         attempts = 0
@@ -67,15 +65,13 @@ class Path_Planning:
          # If we have a complete plan, execute the trajectory
         if fraction == 1.0:
             rospy.loginfo("Path computed successfully. Moving the arm.")
-
             right_arm.execute(plan)
-
             rospy.loginfo("Path execution complete.")
         else:
             rospy.loginfo("Path planning failed with only " + str(fraction) + " success after " + str(maxtries) + " attempts.")
 
             # Move normally back to the 'resting' position
-            right_arm.set_named_target('right_neutral')
+            right_arm.set_named_target('left_neutral')
             right_arm.go()
             rospy.sleep(1)
 
@@ -85,23 +81,30 @@ class Path_Planning:
             # Exit MoveIt
             moveit_commander.os._exit(0)
 
-    def circular_path(self, current_pose):
-
+    def circular_path(self):
         waypoints = []
+ 	#wpose = deepcopy(current_pose)
+	wpose=Pose()
+
+	wpose.position.x = 0.619027463078
+	wpose.position.y = 0.456932535372
+	wpose.position.z = 0.35963384769
+
+	wpose.orientation.x = 0.89646727127
+	wpose.orientation.y = -0.441927661622
+	wpose.orientation.z = -0.0323472356087
+	wpose.orientation.w = 0.000172577279596
 
         # Append the pose to the waypoints list
-        wpose = deepcopy(current_pose)
-        waypoints.append(wpose)
+        waypoints.append(deepcopy(wpose))
         radius = 0.05
-        for a in range(0, 10, 1):
+        for a in range(0, 28, 1):
             tempX = radius*math.cos(a*math.pi/4)
             tempY = radius*math.sin(a*math.pi/4)
             wpose.position.x += tempX
             wpose.position.y += tempY
             waypoints.append(deepcopy(wpose))
 
-        # Append the start pose to the waypoints list
-        waypoints.append(current_pose)
         return waypoints
 
 
