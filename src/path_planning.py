@@ -15,13 +15,14 @@ class Path_Planning:
         rospy.init_node('moveit_demo', anonymous=True)
 
         # Connect to the right_arm move group
-        right_arm = MoveGroupCommander('right_arm')
+        right_arm = MoveGroupCommander('left_arm')
 
         # Allow replanning to increase the odds of a solution
         right_arm.allow_replanning(True)
 
         # Set the right arm reference frame
-        #right_arm.set_pose_reference_frame('base_footprint')
+        #right_arm.set_pose_reference_frame('base')
+        print right_arm.get_planning_frame()
 
         # Allow some leeway in position(meters) and orientation (radians)
         right_arm.set_goal_position_tolerance(0.01)
@@ -30,15 +31,15 @@ class Path_Planning:
         # Get the name of the end-effector link
         end_effector_link = right_arm.get_end_effector_link()
 
-         # Start in the "straight_forward" configuration stored in the SRDF file
-        #right_arm.set_named_target('right_ready')
+        right_arm.set_named_target('left_neutral')
 
         # Plan and execute a trajectory to the goal configuration
         right_arm.go()
 
         # Get the current pose so we can add it as a waypoint
         start_pose = right_arm.get_current_pose(end_effector_link).pose
-
+        #start_pose = right_arm.get_current_pose().pose
+        print "starting Pose\n", start_pose 
         # Initialize the waypoints list
         waypoints = []
 
@@ -47,24 +48,24 @@ class Path_Planning:
 
         wpose = deepcopy(start_pose)
 
-        # Set the next waypoint back 0.2 meters and right 0.2 meters
-        wpose.position.x -= 0.2
-        wpose.position.y += 0.2
+    
+        wpose.position.x -= 0.1
+        wpose.position.y -= 0.1
+        #wpose.position.z += 0.01
 
         # Append the pose to the waypoints list
         waypoints.append(deepcopy(wpose))
 
-        # Set the next waypoint to the right 0.15 meters
-        wpose.position.x += 0.15
-        wpose.position.y += 0.15
-        wpose.position.z -= 0.15
+        # wpose.position.x += 0.15
+        # wpose.position.y += 0.15
+        # wpose.position.z -= 0.15
 
-        # Append the pose to the waypoints list
-        waypoints.append(deepcopy(wpose))
+        # # Append the pose to the waypoints list
+        # waypoints.append(deepcopy(wpose))
 
         # Append the start pose to the waypoints list
-        waypoints.append(deepcopy(start_pose))
-
+        #waypoints.append(deepcopy(start_pose))
+        print "waypoints\n", waypoints
         fraction = 0.0
         maxtries = 100
         attempts = 0
@@ -98,7 +99,7 @@ class Path_Planning:
             rospy.loginfo("Path planning failed with only " + str(fraction) + " success after " + str(maxtries) + " attempts.")
 
             # Move normally back to the 'resting' position
-            right_arm.set_named_target('right_neutral')
+            right_arm.set_named_target('left_neutral')
             right_arm.go()
             rospy.sleep(1)
 
