@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   moveit_msgs
   cmake_modules
+  gripping
 )
 
 find_package(cmake_modules REQUIRED)

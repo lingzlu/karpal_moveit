@@ -7,6 +7,7 @@ from moveit_commander import MoveGroupCommander
 from geometry_msgs.msg import Pose
 import moveit_msgs.msg
 from copy import deepcopy
+import tf
 
 class Path_Planning:
 
@@ -60,28 +61,29 @@ class Path_Planning:
 			rospy.loginfo("Path execution complete.")
 		else:
 			rospy.loginfo("Path planning failed with only " + str(fraction) + " success after " + str(maxtries) + " attempts.")
+	
+	def get_current_pose(self):
+		end_effector_link = self.arm.get_end_effector_link()
+		tfl = tf.TransformListener()
+		tfl.waitForTransform("base", end_effector_link, rospy.Time(0), rospy.Duration(4.0))
+		(position, orientation) = tfl.lookupTransform("base", end_effector_link, rospy.Time(0))
+		current_pose = Pose()
+		current_pose.position.x = position[0]
+		current_pose.position.y = position[1]
+		current_pose.position.z = position[2]
+		current_pose.orientation.x = orientation[0]
+		current_pose.orientation.y = orientation[1]
+		current_pose.orientation.z = orientation[2]
+		current_pose.orientation.w = orientation[3]
+		return current_pose
 
 	def circular_path(self, cycles=2):
-		# Get the name of the end-effector link
-		end_effector_link = self.arm.get_end_effector_link()
+		start_pose = self.get_current_pose()
 
-		# Get the current pose so we can add it as a waypoint
-		start_pose = self.arm.get_current_pose(end_effector_link).pose
-		print "start pose\n", start_pose
 		waypoints = []
-		
-		wpose=Pose()
-		wpose.position.x = 0.741
-		wpose.position.y = 0.478
-		wpose.position.z = 0.153
-	
-		wpose.orientation.x = -0.4644
-		wpose.orientation.y = 0.8838
-		wpose.orientation.z = 0.0157
-		wpose.orientation.w = 0.0534
 
 		# Append the pose to the waypoints list
-		waypoints.append(deepcopy(wpose))
+		waypoints.append(start_pose)
 
 		radius = 0.05
 		stepSize = math.pi/4
@@ -89,7 +91,7 @@ class Path_Planning:
 		for i in range(cycles):
 			step = 0
 			while step*stepSize < 2*math.pi:
-				tempPose = deepcopy(wpose)
+				tempPose = deepcopy(start_pose)
 				tempX = radius*math.cos(step*stepSize)
 				tempY = radius*math.sin(step*stepSize)
 				tempPose.position.x += tempX
@@ -106,9 +108,9 @@ if __name__ == "__main__":
 	
 	# define a starting pose
 	wpose=Pose()
-	wpose.position.x = 0.741
+	wpose.position.x = 0.751
 	wpose.position.y = 0.478
-	wpose.position.z = 0.153
+	wpose.position.z = 0.183
 	wpose.orientation.x = -0.4644
 	wpose.orientation.y = 0.8838
 	wpose.orientation.z = 0.0157
@@ -120,16 +122,16 @@ if __name__ == "__main__":
 	rospy.sleep(1)
 	
 	# get the circular path waypoints
-	wayspoints = cartesianPath.circular_path();
+	wayspoints = cartesianPath.circular_path(5);
 
 	# move the arm following the wayspoints
 	cartesianPath.compute_cartesian_path(wayspoints)
 	rospy.sleep(1)
 
 	# Move back to the 'neutral' position (defined in SRDF file)
-	cartesianPath.arm.set_named_target('left_neutral')
-	cartesianPath.arm.go()
-	rospy.sleep(1)
+	#cartesianPath.arm.set_named_target('left_neutral')
+	#cartesianPath.arm.go()
+	#rospy.sleep(1)
 
 	# Shut down MoveIt cleanly
 	moveit_commander.roscpp_shutdown()
