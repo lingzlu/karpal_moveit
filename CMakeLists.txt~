@@ -36,11 +36,6 @@ catkin_package(
     moveit_visual_tools
   )
 
-add_service_files(
-  FILES
-  karpal_movement.srv
-)
-
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
