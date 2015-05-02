@@ -4,12 +4,12 @@ from tf import TransformListener
 from geometry_msgs.msg import Pose
 import sys
 import math
-import numpy as np
 
 class MoveHelper:
 	
 	def __init__(self, limb='left'):
 		self.arm = baxter_interface.limb.Limb(limb)
+		self.scene = moveit_commander.PlanningSceneInterface()
 		
 	def enableBaxterInterface(self):
 
@@ -46,32 +46,7 @@ class MoveHelper:
 		current_pose.orientation.z = pose['orientation'].z
 		current_pose.orientation.w = pose['orientation'].w
 		return current_pose
-	
-	def quaternion_multiply(self, q1, q2):
-		
-   		x1, y1, z1, w1 = q1
-	    	x2, y2, z2, w2 = q2
 
-	    	return np.array([x1*w2 + y1*z2 - z1*y2 + w1*x2,
-	                        -x1*z2 + y1*w2 + z1*x2 + w1*y2,
-	                         x1*y2 - y1*x2 + z1*w2 + w1*z2,
-				-x1*x2 - y1*y2 - z1*z2 + w1*w2], dtype=np.float64)
-	"""
-	def get_current_pose(self):
-		end_effector_link = self.group.get_end_effector_link()
-		self.tfl.waitForTransform("base", end_effector_link, rospy.Time(0), rospy.Duration(4.0))
-		(position, orientation) = tfl.lookupTransform("base", end_effector_link, rospy.Time(0))
-		current_pose = Pose()
-		current_pose.position.x = position[0]
-		current_pose.position.y = position[1]
-		current_pose.position.z = position[2]
-		current_pose.orientation.x = orientation[0]
-		current_pose.orientation.y = orientation[1]
-		current_pose.orientation.z = orientation[2]
-		current_pose.orientation.w = orientation[3]
-		return current_pose
-	"""
-	
 	def get_current_orientation(self):
 		pose = self.arm.endpoint_pose()
 		return pose['orientation']
