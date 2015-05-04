@@ -238,6 +238,8 @@ class karpal_moveit:
 
 		gripperAngle = currentJoints[self.limb + "_w2"]
 		if gripperAngle < 0.05:
+			#targetPosition[0] += 0.1*math.cos(angleAboutZ)
+			#targetPosition[1] += 0.1*math.sin(angleAboutZ)
 			moveToPour = 0.08
 			gripperRotation = 2.5
 
@@ -247,10 +249,10 @@ class karpal_moveit:
 
 
 		waypoints = self.get_waypoints_above_object(targetPosition, moveUp=0.18, aboveObject=0.18)
-		lastPose = deepcopy(waypoints[-1])
-
-		lastPose.position.y += moveToPour
-		waypoints.append(lastPose)
+		pourPose = deepcopy(waypoints[-1])
+		
+		pourPose.position.x += moveToPour
+		waypoints.append(pourPose)
 		movedAboveObject = self.execute_cartesian_path(waypoints)
 
 		# count = 0
@@ -406,9 +408,20 @@ class karpal_moveit:
 			preGraspPose.position.y -= preGraspDistance
 		print preGraspPose
 		return preGraspPose
+	
+	def quaternion_to_axis_angle(self, orientation):
+		qx = orientation[0]
+		qy = orientation[1]
+		qz = orientation[2]
+		qw = orientation[3]
+
+		x = qx/math.sqrt(1-qw*qw)
+		y = qy/math.sqrt(1-qw*qw)
+		z = qz/math.sqrt(1-qw*qw)
+		return [x, y, z]
 
 	def test(self):
-		currentPose = self.moveHelper.get_cplaceurrent_pose()
+		currentPose = self.moveHelper.get_current_pose()
 
 		targetPose = deepcopy(currentPose)
 		orien = []
@@ -416,17 +429,25 @@ class karpal_moveit:
 		orien.append(currentPose.orientation.y)
 		orien.append(currentPose.orientation.z)
 		orien.append(currentPose.orientation.w)
+		
+		orientation = self.moveHelper.get_current_orientation()
+		axisAngle = self.quaternion_to_axis_angle(orientation)
+		H = math.sqrt(math.pow(axisAngle[0],2) + math.pow(axisAngle[1],2) + math.pow(axisAngle[2],2))
+		angleAboutZ = axisAngle[2]/H
+		print angleAboutZ
 
-		orien_euler1 = tf.transformations.euler_from_quaternion(orien)
-		print orien
-
+		#orien_euler1 = tf.transformations.euler_from_quaternion(orien)
+		#print orien_euler1
+		
+		"""
 		rot = tf.transformations.quaternion_from_euler(0, 0, -10*math.pi/180)
 		newOrien = tf.transformations.quaternion_multiply(rot, orien)
 
 		targetPose.orientation = Quaternion(*newOrien)
 		orien_euler = tf.transformations.euler_from_quaternion(newOrien)
 		print newOrien
-		self.move_to_target_pose(targetPose)
+		#self.move_to_target_pose(targetPose)
+		"""
 
 def testLeftArm():
 	moveit = karpal_moveit("left_arm")
@@ -439,15 +460,16 @@ def testLeftArm():
 
 	rospy.sleep(1)
 
-	milkPos = [0.72, 0.28, -0.055]
+	milkPos = [0.859, 0.365, -0.055]
 	bowlPos = [0.82, 0, -0.07]
-
-	picked = moveit.pick(milkPos)
+	orien = [0.303, 0.711, -0.27, 0.573]
+	
+	picked = moveit.pick(milkPos, orien, fixedOrientation=True)
 
 	if(picked):
 		if (moveit.pour(bowlPos)):
 			moveit.place(milkPos)
-
+	"""
 	rospy.sleep(1)
 	pose = moveit.moveHelper.get_current_pose()
 	pose.position.x -= 0.08
@@ -466,7 +488,7 @@ def testLeftArm():
 	if(picked):
 		if (moveit.pour(bowlPos)):
 			moveit.place(cerealPos)
-
+	"""
 def testRightArm():
 	moveit = karpal_moveit("right_arm")
 	#moveit.addObject()
@@ -569,6 +591,8 @@ if __name__ == "__main__":
 	#testLeftArm()
 	#testRightArm()
 	testBothArm()
+	#moveit = karpal_moveit("left_arm")
+	#moveit.test()
 
 	# Shut down MoveIt cleanly
 	moveit_commander.roscpp_shutdown()
