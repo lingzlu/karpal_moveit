@@ -59,10 +59,10 @@ class karpal_moveit:
 		self.group.set_goal_orientation_tolerance(0.05)
 
 		# We create this DisplayTrajectory publisher which is used below to publish trajectories for RVIZ to visualize.
-        	display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', DisplayTrajectory, queue_size=10)
+        	#display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', DisplayTrajectory, queue_size=10)
 
         	#print "Waiting for RVIZ..."
-        	rospy.sleep(1)
+       		#rospy.sleep(1)
 
 	def execute_cartesian_path(self, waypoints):
 		"""
@@ -74,7 +74,7 @@ class karpal_moveit:
 		@return Returns true if path computed successfully
 		"""
 
-		maxAttempts = 20
+		maxAttempts = 50
 		attempts = 0
 
 		# Set the internal state to the current state
@@ -95,11 +95,12 @@ class karpal_moveit:
 				rospy.sleep(1)
 				return True
 			else:
-				rospy.loginfo("Path planning failed with only " + str(fraction) + " success after " + str(maxAttempts) + " attempts.")
 				# modify waypoints orientation
 				waypoints = self.change_waypoints_orientation(waypoints)
 
 			attempts += 1
+
+		rospy.loginfo("Path planning failed with " + str(fraction) + " success after " + str(maxAttempts) + " attempts.")
 		return False
 
 	def move_to_target_pose(self, targetPose):
@@ -195,24 +196,32 @@ class karpal_moveit:
 		return placed
 
 	def change_waypoints_orientation(self, waypoints):
-		currOrien = self.moveHelper.get_current_orientation()
-		if self.limb == 'right':
-			rot = tf.transformations.quaternion_from_euler(0, 0, -10*math.pi/180)
-		else:
-			rot = tf.transformations.quaternion_from_euler(0, 0, 10*math.pi/180)
+
+		# if self.limb == 'right':
+		# 	rot = tf.transformations.quaternion_from_euler(0, 0, -15*math.pi/180)
+		# else:
+		# 	rot = tf.transformations.quaternion_from_euler(0, 0, 15*math.pi/180)
 
 		pose = waypoints[-1]
-		lastTriedOrien = []
-		lastTriedOrien.append(pose.orientation.x)
-		lastTriedOrien.append(pose.orientation.y)
-		lastTriedOrien.append(pose.orientation.z)
-		lastTriedOrien.append(pose.orientation.w)
-		newOrien = tf.transformations.quaternion_multiply(rot, lastTriedOrien)
+		waypointsOrien = []
+		waypointsOrien.append(pose.orientation.x)
+		waypointsOrien.append(pose.orientation.y)
+		waypointsOrien.append(pose.orientation.z)
+		waypointsOrien.append(pose.orientation.w)
+
+		newOrien = self.generate_orientation(waypointsOrien, 20)
 		newOrien = Quaternion(*newOrien)
 
 		for pose in waypoints[1:]:
 			pose.orientation = newOrien
 		return waypoints
+
+	def generate_orientation(self, orientation, degreeRange = 20):
+		deg = random.uniform(-degreeRange, degreeRange)
+		rot = tf.transformations.quaternion_from_euler(0, 0, deg*math.pi/180)
+
+		newOrien = tf.transformations.quaternion_multiply(rot, orientation)
+		return newOrien
 
 	def pour(self, targetPosition):
 		""" Method to rotate Baxter's wrist, which will pour out
@@ -297,6 +306,7 @@ class karpal_moveit:
 				tempPose.position.y += tempY
 				waypoints.append(tempPose)
 				step +=1
+		print waypoints
 		self.execute_cartesian_path(waypoints)
 		rospy.sleep(2)
 
@@ -375,14 +385,6 @@ class karpal_moveit:
 		p.pose.position.y = -1.2
 		p.pose.position.z = -0.15
 		self.scene.add_box("wall", p, (0.1, 0.6, 0.4))
-
-
-	def generate_orientation(self, orientation, degreeRange = 20):
-		deg = random.uniform(-degreeRange, degreeRange)
-		rot = tf.transformations.quaternion_from_euler(0, 0, deg*math.pi/180)
-
-		newOrien = tf.transformations.quaternion_multiply(rot, orientation)
-		return newOrien
 
 	def generate_pregrasp_pose(self, pickPose, preGraspDistance = 0.08, fixedOrientation = False):
 
@@ -467,10 +469,10 @@ def testLeftArm():
 
 def testRightArm():
 	moveit = karpal_moveit("right_arm")
-	moveit.addObject()
-	moveit.group.set_named_target('right_neutral')
-	moveit.group.go()
-
+	#moveit.addObject()
+	#moveit.group.set_named_target('right_neutral')
+	#moveit.group.go()
+	moveit.stir(5)
 	# Move back to the 'neutral' position (defined in SRDF file)
 
 	"""
@@ -486,9 +488,9 @@ def testRightArm():
 	moveit.move_to_target_pose(pose)
 	"""
 
-	moveit.addObject()
-	moveit.group.set_named_target('right_neutral')
-	moveit.group.go()
+	# moveit.addObject()
+	# moveit.group.set_named_target('right_neutral')
+	# moveit.group.go()
 
 	rospy.sleep(2)
 
@@ -496,45 +498,46 @@ def testRightArm():
 	pickOrientation = [-0.178, 0.686, 0.157, 0.687]
 	bowlPos = [0.84, -0.05, -0.07]
 	#moveit.test()
-
+	"""
 	picked = moveit.pick(mixerPos, pickOrientation, preGraspDistance = 0.08, fixedOrientation = True)
 	if(picked):
 		if moveit.move_above_object(bowlPos, moveUp = 0.22, aboveObject=0.20):
-			moveit.stir(3)
+			moveit.stir(5)
 			moveit.place(mixerPos, moveUp = 0.24, releaseHeight = 0.1)
 			#moveit.pour()
 			#moveit.place(objectPosition)
-
+	"""
 def testBothArm():
 	moveitLeft = karpal_moveit("left_arm")
-	moveitRight = karpal_moveit("right_arm")
 	moveitLeft.addObject()
 
 	moveitLeft.group.set_named_target('left_neutral')
 	moveitLeft.group.go()
 	rospy.sleep(1)
 
+
+	moveitRight = karpal_moveit("right_arm")
 	moveitRight.group.set_named_target('right_neutral')
 	moveitRight.group.go()
 	rospy.sleep(1)
 
-	milkPos = [0.72, 0.28, -0.055]
-	bowlPos = [0.84, 0, -0.07]
-	cerealPos = [0.88, 0.38, -0.055]
-
+	milkPos = [0.72, 0.20, -0.072]
+	bowlPos = [0.82, -0.05, -0.07]
+	cerealPos = [0.86, 0.35, -0.055]
 	mixerPos = [0.79, -0.40, 0.12]
-	mixerPickOrientation = [-0.178, 0.686, 0.157, 0.687]
 
 	picked = moveitLeft.pick(milkPos, preGraspDistance = 0.08, fixedOrientation = False)
 
 	if(picked):
+		print("picked up milk cup")
 		if (moveitLeft.pour(bowlPos)):
+			print("poured milk to the bowl")
 			moveitLeft.place(milkPos)
-
+			print("placed milk cup to original locaion")
 	rospy.sleep(3)
 	pose = moveitLeft.moveHelper.get_current_pose()
 	pose.position.x -= 0.08
-	pose.position.y += 0.08
+	pose.position.y += 0.15
 	moveitLeft.move_to_target_pose(pose)
 
 	rospy.sleep(1)
@@ -542,14 +545,25 @@ def testBothArm():
 	moveitLeft.group.go()
 	rospy.sleep(1)
 
-	pickOrientation = [0.278, 0.678, -0.19, 0.653]
-
+	pickCerealOrien = [0.278, 0.678, -0.19, 0.653]
 	picked = moveitLeft.pick(cerealPos)
 
 	if(picked):
-		if (moveitLeft.pour(bowlPos)):
-			moveitLeft.place(cerealPos)
+		print("picked up cereal box")
+	 	if (moveitLeft.pour(bowlPos)):
+	 		print("poured cereal to the bowl")
+	 		moveitLeft.place(cerealPos)
+	 		print("placed cereal box to original locaion")
 
+	pickMixerOrien = [-0.178, 0.686, 0.157, 0.687]
+	picked = moveitRight.pick(mixerPos, pickMixerOrien, preGraspDistance = 0.08, fixedOrientation = True)
+	if(picked):
+		print("picked up mixer")
+	 	if moveitRight.move_above_object(bowlPos, moveUp = 0.22, aboveObject=0.20):
+	 		print("moved aboved bowl, ready to mix")
+	 		moveitRight.stir(radius=0.05, cycles=5)
+	 		moveitRight.place(mixerPos, moveUp = 0.24, releaseHeight = 0.1)
+			print("placed mixer to original locaion")
 
 if __name__ == "__main__":
 	#testLeftArm()
