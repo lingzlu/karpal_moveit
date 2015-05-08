@@ -12,14 +12,14 @@ from copy import deepcopy
 import numpy, random, math
 from move_helper import MoveHelper
 
-class karpal_moveit:
+class KarpalMoveit:
 
 	def __init__(self, arm="left_arm"):
 		# Initialize the move_group API
 		moveit_commander.roscpp_initialize(sys.argv)
 
 		# Initialize the ROS node
-		rospy.init_node('karpal_moveit_test', anonymous=True)
+		rospy.init_node('KarpalMoveit_test', anonymous=True)
 
 		self.scene = moveit_commander.PlanningSceneInterface()
 		self.robot = moveit_commander.RobotCommander()
@@ -40,8 +40,8 @@ class karpal_moveit:
 		# instantiated range sensor on the hand
 		self.handSensor = baxter_interface.AnalogIO(self.limb + '_hand_range')
 
-		# helper class for some common used function such as get current pose, joint angles, etc.
-		self.moveHelper = MoveHelper(self.limb)
+		# set arm for the move helper class
+		MoveHelper.set_arm(self.limb)
 
 		# calibrate gripper
 		if not self.gripper.calibrated():
@@ -103,16 +103,6 @@ class karpal_moveit:
 		rospy.loginfo("Path planning failed with " + str(fraction) + " success after " + str(maxAttempts) + " attempts.")
 		return False
 
-	def move_to_target_pose(self, targetPose):
-		"""
-		Move end-effector to a defined pose
-		@param targetPose The target pose for the end-effector
-		"""
-		self.group.set_start_state_to_current_state()
-		self.group.set_pose_target(targetPose)
-		plan = self.group.plan()
-		return self.group.execute(plan)
-
 	def pick(self, position, orientation = None, preGraspDistance = 0.08, fixedOrientation = False):
 		"""
 		Pick up a object using range sensor on the hand
@@ -137,12 +127,12 @@ class karpal_moveit:
 
 		if fixedOrientation:
 			preGraspPose = self.generate_pregrasp_pose(pickPose, preGraspDistance, fixedOrientation)
-			isMoved = self.move_to_target_pose(preGraspPose)
+			isMoved = MoveHelper.move_to_target_pose(preGraspPose)
 		else:
 			count = 0
-			while not isMoved and count < 5:
+			while not isMoved and count < 20:
 				preGraspPose = self.generate_pregrasp_pose(pickPose, preGraspDistance, fixedOrientation)
-				isMoved = self.move_to_target_pose(preGraspPose)
+				isMoved = MoveHelper.move_to_target_pose(preGraspPose)
 			count += 1
 
 		if not isMoved:
@@ -159,24 +149,20 @@ class karpal_moveit:
 		print targetGraspPoint, preGraspPoint
 		print normVector
 
-		maxMove = 12
+		xDiff = position[0] - preGraspPose.position.x
+		yDiff = position[1]-preGraspPose.position.y
+		dist = math.hypot(xDiff, yDiff)
+
+		maxMove = 10
 		moveCount = 0
 		while self.handSensor.state() > 70 and moveCount < maxMove:
+			print self.handSensor.state()
+			preGraspPose.position.x += 0.02/dist*xDiff
+			preGraspPose.position.y += 0.02/dist*yDiff
 
-			if self.limb == 'left':
-				#preGraspPose.position.x += 0.02
-				#preGraspPose.position.y -= 0.02
-				preGraspPose.position.x += 0.02*normVector[0]
-				preGraspPose.position.y += 0.02*normVector[1]
-			else:
-				#preGraspPose.position.x += 0.02
-				#preGraspPose.position.y += 0.02
-				preGraspPose.position.x += 0.02*normVector[0]
-				preGraspPose.position.y += 0.02*normVector[1]
-
-			self.move_to_target_pose(preGraspPose)
+			MoveHelper.move_to_target_pose(preGraspPose)
 			moveCount += 1
-			rospy.sleep(2)
+			rospy.sleep(1)
 
 		self.gripper.close()
 		rospy.sleep(1)
@@ -216,10 +202,11 @@ class karpal_moveit:
 			pose.orientation = newOrien
 		return waypoints
 
-	def generate_orientation(self, orientation, degreeRange = 20):
+	def generate_orientation(self, orientation, degreeRange = 35):
 		deg = random.uniform(-degreeRange, degreeRange)
+		print deg
 		rot = tf.transformations.quaternion_from_euler(0, 0, deg*math.pi/180)
-
+		
 		newOrien = tf.transformations.quaternion_multiply(rot, orientation)
 		return newOrien
 
@@ -230,11 +217,11 @@ class karpal_moveit:
 		"""
 
 		# remember starting position
-		#currentPose = self.moveHelper.get_current_pose()
+		#currentPose = MoveHelper.get_current_pose()
 		#targetPose = deepcopy(currentPose)
 
 		# remember starting angles
-		currentJoints = self.moveHelper.get_current_joint_values()
+		currentJoints = MoveHelper.get_current_joint_values()
 
 		gripperAngle = currentJoints[self.limb + "_w2"]
 		if gripperAngle < 0.05:
@@ -268,9 +255,9 @@ class karpal_moveit:
 			return False
 
 		# move to optimal pouring position
-		#self.move_to_target_pose(targetPose)
+		#MoveHelper.move_to_target_pose(targetPose)
 
-		currentJoints = self.moveHelper.get_current_joint_values()
+		currentJoints = MoveHelper.get_current_joint_values()
 		targetJoints = deepcopy(currentJoints)
 		targetJoints[self.limb + "_w2"] += gripperRotation
 
@@ -290,7 +277,7 @@ class karpal_moveit:
 		@param cycles Number of cycles movement, default = 3 cycles
 		"""
 
-		start_pose = self.moveHelper.get_current_pose()
+		start_pose = MoveHelper.get_current_pose()
 		waypoints = []
 
 		# Append the pose to the waypoints list
@@ -313,9 +300,7 @@ class karpal_moveit:
 		rospy.sleep(2)
 
 	def get_waypoints_above_object(self, targetPosition, moveUp = 0.2, aboveObject = 0.15):
-
-
-		currentPose = self.moveHelper.get_current_pose()
+		currentPose = MoveHelper.get_current_pose()
 		waypoints = []
 
 		wPose = deepcopy(currentPose)
@@ -361,35 +346,7 @@ class karpal_moveit:
 
 		return False
 
-
-	def addObject(self):
-		self.scene.remove_world_object("table")
-		self.scene.remove_world_object("wall")
-		self.scene.remove_world_object("camera")
-
-		# publish a demo scene
-    		p = PoseStamped()
-    		p.header.frame_id = self.robot.get_planning_frame()
-
-		# add a table
-	        p.pose.position.x = 0.95
-		p.pose.position.y = 0
-		p.pose.position.z = -0.26
-    		self.scene.add_box("table", p, (1.2, 1.2, 0.2))
-
-		# add camera
-	        p.pose.position.x = 0.18
-		p.pose.position.y = 0
-		p.pose.position.z = 0.54
-    		self.scene.add_box("camera", p, (0.06, 0.2, 0.06))
-
-	    	p.pose.position.x = 0.35
-		p.pose.position.y = -1.2
-		p.pose.position.z = -0.15
-		self.scene.add_box("wall", p, (0.1, 0.6, 0.4))
-
 	def generate_pregrasp_pose(self, pickPose, preGraspDistance = 0.08, fixedOrientation = False):
-
 		preGraspPose = deepcopy(pickPose)
 		if not fixedOrientation:
 			orien = []
@@ -415,60 +372,71 @@ class karpal_moveit:
 		qz = orientation[2]
 		qw = orientation[3]
 
-		x = qx/math.sqrt(1-qw*qw)
-		y = qy/math.sqrt(1-qw*qw)
-		z = qz/math.sqrt(1-qw*qw)
+		qwSq = qw*qw
+		x = qx/math.sqrt(1-qwSq)
+		y = qy/math.sqrt(1-qwSq)
+		z = qz/math.sqrt(1-qwSq)
 		return [x, y, z]
 
-	def test(self):
-		currentPose = self.moveHelper.get_current_pose()
-
-		targetPose = deepcopy(currentPose)
-		orien = []
-		orien.append(currentPose.orientation.x)
-		orien.append(currentPose.orientation.y)
-		orien.append(currentPose.orientation.z)
-		orien.append(currentPose.orientation.w)
-		
-		orientation = self.moveHelper.get_current_orientation()
+	def testOrientation(self):
+		currentPose = MoveHelper.get_current_pose()
+		orientation = MoveHelper.get_current_orientation()
 		axisAngle = self.quaternion_to_axis_angle(orientation)
-		H = math.sqrt(math.pow(axisAngle[0],2) + math.pow(axisAngle[1],2) + math.pow(axisAngle[2],2))
-		angleAboutZ = axisAngle[2]/H
-		print angleAboutZ
+		print axisAngle
 
 		#orien_euler1 = tf.transformations.euler_from_quaternion(orien)
 		#print orien_euler1
 		
-		"""
-		rot = tf.transformations.quaternion_from_euler(0, 0, -10*math.pi/180)
-		newOrien = tf.transformations.quaternion_multiply(rot, orien)
+		rot = tf.transformations.quaternion_from_euler(0, 0, math.pi/2)
+		newOrien = tf.transformations.quaternion_multiply(rot, orientation)
 
-		targetPose.orientation = Quaternion(*newOrien)
+		currentPose.orientation = Quaternion(*newOrien)
 		orien_euler = tf.transformations.euler_from_quaternion(newOrien)
-		print newOrien
-		#self.move_to_target_pose(targetPose)
-		"""
+
+		MoveHelper.move_to_target_pose(currentPose)
+		rospy.sleep(1)
+		orientation = MoveHelper.get_current_orientation()
+		axisAngle = self.quaternion_to_axis_angle(newOrien)
+		print axisAngle
+		
+	def testGrasp(self, targetPos):
+		preGraspPose = MoveHelper.get_current_pose()
+		count = 0
+
+		#radAboutZ = math.atan(targetPos[1]targetPos[0])
+		# xDiff = targetPos[0]-preGraspPose.position.x
+		# yDiff = targetPos[1]-preGraspPose.position.y
+
+		# dist = math.hypot(xDiff, yDiff)
+
+		# while count < 10:
+
+		# 	preGraspPose.position.x += 0.02/dist*xDiff
+		# 	preGraspPose.position.y += 0.02/dist*yDiff
+		# 	MoveHelper.move_to_target_pose(preGraspPose)
+		# 	count += 1
 
 def testLeftArm():
-	moveit = karpal_moveit("left_arm")
+	moveit = KarpalMoveit("left_arm")
 	#moveit.test()
 
-	moveit.addObject()
+	MoveHelper.add_table()
+	MoveHelper.add_kinect()
 
 	moveit.group.set_named_target('left_neutral')
 	moveit.group.go()
 
-	rospy.sleep(1)
+	# rospy.sleep(1)
 
-	milkPos = [0.859, 0.365, -0.055]
+	milkPos = [0.85, 0.35, -0.072]
 	bowlPos = [0.82, 0, -0.07]
 	orien = [0.303, 0.711, -0.27, 0.573]
-	
-	picked = moveit.pick(milkPos, orien, fixedOrientation=True)
+	#moveit.testOrientation()
+	picked = moveit.pick(milkPos, fixedOrientation=True)
 
-	if(picked):
-		if (moveit.pour(bowlPos)):
-			moveit.place(milkPos)
+	# if(picked):
+	# 	if (moveit.pour(bowlPos)):
+	# 		moveit.place(milkPos)
 	"""
 	rospy.sleep(1)
 	pose = moveit.moveHelper.get_current_pose()
@@ -490,7 +458,7 @@ def testLeftArm():
 			moveit.place(cerealPos)
 	"""
 def testRightArm():
-	moveit = karpal_moveit("right_arm")
+	moveit = KarpalMoveit("right_arm")
 	#moveit.addObject()
 	#moveit.group.set_named_target('right_neutral')
 	#moveit.group.go()
@@ -530,7 +498,7 @@ def testRightArm():
 			#moveit.place(objectPosition)
 	"""
 def testBothArm():
-	moveitLeft = karpal_moveit("left_arm")
+	moveitLeft = KarpalMoveit("left_arm")
 	moveitLeft.addObject()
 
 	moveitLeft.group.set_named_target('left_neutral')
@@ -538,7 +506,7 @@ def testBothArm():
 	rospy.sleep(1)
 
 
-	moveitRight = karpal_moveit("right_arm")
+	moveitRight = KarpalMoveit("right_arm")
 	moveitRight.group.set_named_target('right_neutral')
 	moveitRight.group.go()
 	rospy.sleep(1)
@@ -588,10 +556,10 @@ def testBothArm():
 			print("placed mixer to original locaion")
 
 if __name__ == "__main__":
-	#testLeftArm()
+	testLeftArm()
 	#testRightArm()
-	testBothArm()
-	#moveit = karpal_moveit("left_arm")
+	#testBothArm()
+	#moveit = KarpalMoveit("left_arm")
 	#moveit.test()
 
 	# Shut down MoveIt cleanly

@@ -5,36 +5,51 @@ from geometry_msgs.msg import Pose
 import sys
 import math
 
-class MoveHelper:
+class MoveHelper(object):
 
-	def __init__(self, limb='left'):
-		self.arm = baxter_interface.limb.Limb(limb)
-		self.scene = moveit_commander.PlanningSceneInterface()
+	limb = 'left'
+	arm = baxter_interface.limb.Limb('left')
+	group  = moveit_commander.MoveGroupCommander('left_arm')
 
-	def enable_baxter_interface(self):
+	def __init__(cls, limb='left'):
+		cls.arm = baxter_interface.limb.Limb(limb)
+		cls.scene = moveit_commander.PlanningSceneInterface()
+
+	@staticmethod
+	def enable_baxter():
 		robotEnable = baxter_interface.RobotEnable()
 		robotEnable.enable()
 
-	def move_to_neutral(self):
-		self.arm.move_to_neutral()
+	@classmethod
+	def move_to_neutral(use_moveit = False):
+		if use_moveit:
+			return cls.moveit_move_to_neutral(limb)
 
-	def create_joint_angles(self, new_angles, base_angles = None):
+		cls.arm.move_to_neutral()
+
+	@classmethod
+	def moveit_move_to_neutral():
+		cls.group.set_named_target(cls.limb + "_neutral")
+		cls.group.plan()
+		cls.group.go()
+
+	def create_joint_angles(new_angles, base_angles = None):
 		if base_angles is None:
-			base_angles = self.arm.joint_angles()
+			base_angles = cls.arm.joint_angles()
 
 		angles = copy.deepcopy(base_angles)
 		for joint, angle in new_angles.iteritems():
 			angles[joint] = angle
 		return angles
 
-	def move_to_joint_positions(self, angles):
-		self.arm.move_to_joint_positions(angles)
+	def move_to_joint_positions(angles):
+		cls.arm.move_to_joint_positions(angles)
 
-	def get_current_joint_values(self):
-		return self.arm.joint_angles()
+	def get_current_joint_values():
+		return cls.arm.joint_angles()
 
-	def get_current_pose(self):
-		pose = self.arm.endpoint_pose()
+	def get_current_pose():
+		pose = cls.arm.endpoint_pose()
 
 		current_pose = Pose()
 		current_pose.position.x = pose['position'].x
@@ -46,6 +61,6 @@ class MoveHelper:
 		current_pose.orientation.w = pose['orientation'].w
 		return current_pose
 
-	def get_current_orientation(self):
-		pose = self.arm.endpoint_pose()
+	def get_current_orientation():
+		pose = cls.arm.endpoint_pose()
 		return pose['orientation']
